@@ -17,6 +17,8 @@ import matplotlib.pyplot as plt
 
 # GLOBAL VARIABLES
 
+with open("title.txt", "r", encoding="utf-8") as file:
+    title = file.read()
 data = []
 
 
@@ -521,16 +523,20 @@ def gaussian_smooth(data: pd.DataFrame, std_values: pd.DataFrame, factor: float 
     if factor is None:
         factor = 3
 
-    smoothed_data = data.copy()
+    # Copy the data to avoid modifying the original.
+    denoised_data = data.copy()
     
+    # Apply Gaussian filter to each column.
     for column in data.columns:
         if column in std_values.columns:
-            smoothed_data[column] = [
+            # Use scipy.ndimage.gaussian_filter1d to apply the Gaussian filter.
+            denoised_data[column] = [
                 scipy.ndimage.gaussian_filter1d(data[column].values, sigma=row_sigma * factor)[i]
                 for i, row_sigma in enumerate(std_values[column].values)
             ]
 
-    return smoothed_data
+    # Return the denoised data.
+    return denoised_data
 
 def smooth_points(data: list[POS], factor: float = None) -> list[tuple]:
     """
@@ -545,6 +551,7 @@ def smooth_points(data: list[POS], factor: float = None) -> list[tuple]:
         list[tuple]: A list of tuples containing the smoothed data. The tuple format is (latitude, longitude, altitude).
     """
 
+    # Convert the data to a DataFrame.
     coordinates = pd.DataFrame({
         "Latitude": [entry.lat for entry in data if isinstance(entry, POS)],
         "Longitude": [entry.lon for entry in data if isinstance(entry, POS)],
@@ -556,10 +563,11 @@ def smooth_points(data: list[POS], factor: float = None) -> list[tuple]:
         "Altitude": [entry.alt_std for entry in data if isinstance(entry, POS)],
     })
 
-    smoothed = gaussian_smooth(coordinates, deviations)
-    return [(row["Latitude"], row["Longitude"], row["Altitude"]) for _, row in smoothed.iterrows()]
+    # Denoise the data.
+    denoised = gaussian_smooth(coordinates, deviations)
+    return [(row["Latitude"], row["Longitude"], row["Altitude"]) for _, row in denoised.iterrows()]
 
-def haversine(lat1, lon1, lat2, lon2):
+def haversine(lat1, lon1, lat2, lon2) -> float:
     """
     Calculate the great-circle distance between two points on the Earth's surface.
 
@@ -573,11 +581,15 @@ def haversine(lat1, lon1, lat2, lon2):
         float: The distance between the two points in meters.
     """
 
+    # Use the Haversine formula to calculate the distance between two points on the Earth's surface.
+    # The radius of the Earth is 6371 km.
     radius = 6371000
+    # Convert latitudes and longitudes to radians.
     phi1, phi2 = np.radians(lat1), np.radians(lat2)
     delta_phi = np.radians(lat2 - lat1)
     delta_lambda = np.radians(lon2 - lon1)
 
+    # Haversine formula.
     a = np.sin(delta_phi / 2) ** 2 + np.cos(phi1) * np.cos(phi2) * np.sin(delta_lambda / 2) ** 2
     c = 2 * np.arctan2(np.sqrt(a), np.sqrt(1 - a))
 
@@ -595,19 +607,29 @@ def get_flattened_altitudes(altitudes: list[float], factor: int) -> list[float]:
         list[float]: A list of adjusted altitudes.
     """
 
+    # Calculate the mean altitude.
     mean_altitude = np.mean(altitudes)
+
     return [(factor / 100) * alt + (1 - factor / 100) * mean_altitude for alt in altitudes]
 
 
 # MENU FUNCTIONS
 
-def main_menu():
+def print_title() -> None:
+    """
+    Print the program title.
+    """
+    fprint(Colors.BOLD + Colors.MAGENTA + title)
+
+
+def main_menu() -> None:
     """
     Display the main menu.
     """
 
     while True:
         clear()
+        print_title()
         fprint(Colors.BOLD + "MAIN MENU")
         fprint("  1. Render on Earth")
         fprint("  2. Render in 3D")
@@ -631,7 +653,7 @@ def main_menu():
                 fprint(Colors.RED + "Invalid choice. Please try again.")
                 pause()
 
-def render_on_earth_menu():
+def render_on_earth_menu() -> None:
     """
     Display the Google Earth rendering menu.
     """
@@ -645,6 +667,7 @@ def render_on_earth_menu():
 
     while True:
         clear()
+        print_title()
         fprint(Colors.BOLD + "RENDER EARTH")
         fprint("  1. Raw Points - " + (Colors.GREEN + "ON" if settings["raw"] else Colors.RED + "OFF"))
         fprint("  2. Smoothed Points - " + (Colors.GREEN + "ON" if settings["smoothed"] else Colors.RED + "OFF"))
@@ -792,6 +815,7 @@ def render_3d() -> None:
     """
 
     clear()
+    print_title()
     fprint(Colors.BOLD + "3D PLOT")
     fprint("Rendering 3D plot... Please wait.")
 
@@ -857,7 +881,7 @@ def render_3d() -> None:
     smooth_slider = Slider(axis_smooth_slider, "Denoising Factor", 0, 3, valinit=0, valstep=0.1)
 
     # NOTE: This function is nested to allow access to all variables and keep code structure clean.
-    def update(_):
+    def update(_) -> None:
         """
         Update the plot when the processing sliders change.
 
@@ -938,6 +962,7 @@ def plot_speed() -> None:
     """
 
     clear()
+    print_title()
     fprint(Colors.BOLD + "SPEED PLOT")
     fprint("Rendering speed plot... Please wait.")
 
@@ -961,7 +986,7 @@ def plot_speed() -> None:
     axis_smooth_slider = plt.axes([0.2, 0.02, 0.65, 0.03])
     smooth_slider = Slider(axis_smooth_slider, "Denoising Factor", 0, 2, valinit=0, valstep=0.1)
 
-    def update(_):
+    def update(_) -> None:
         """
         Update the plot when the smoothing factor slider changes.
 
@@ -989,18 +1014,20 @@ def plot_speed() -> None:
     pause()
 
 
-def help_menu():
+def help_menu() -> None:
     """
     Display the help menu.
     """
 
     clear()
-    fprint(Colors.BOLD + "HELP MENU")
+    print_title()
+    fprint(Colors.BOLD + "HELP MENU -> OVERVIEW")
     fprint("This program reads data from a file and allows you to visualize it in Google Earth Pro or a 3D plot.")
     pause()
 
     clear()
-    fprint(Colors.BOLD + "HELP MENU")
+    print_title()
+    fprint(Colors.BOLD + "HELP MENU -> RENDER ON EARTH")
     fprint("You may choose to render the raw data, smoothed data, a line, and endpoints in Google Earth Pro.")
     fprint("For this option, you must have Google Earth Pro installed on your system.")
     fprint("You must also set the path to the Google Earth Pro executable in the config.json file.")
@@ -1009,17 +1036,19 @@ def help_menu():
     pause()
 
     clear()
-    fprint(Colors.BOLD + "HELP MENU")
+    print_title()
+    fprint(Colors.BOLD + "HELP MENU -> RENDER 3D")
     fprint("You may also render the data in a 3D plot.")
-    fprint("This plot allows you to visualize the path taken, the velocity, and the distance traveled.")
+    fprint("This plot allows you to visualize the path taken, the velocity, and the distance traveled.\n")
     fprint("You may change the denoising factor, to adjust the smoothness of the path to reduce noise.")
     fprint("You can also flatten the altitude to see the path more clearly.")
-    fprint("You may use the time slider to view the data at different points in time.")
-    fprint("Keep in mind that the denoising factor and flattening may affect the accuracy of the time based data in the top left.")
+    fprint("You may use the time slider to view the data at different points in time.\n")
+    fprint("Keep in mind that the denoising factor and flattening may affect the accuracy of the time-based data in the top left.")
     pause()
 
     clear()
-    fprint(Colors.BOLD + "HELP MENU")
+    print_title()
+    fprint(Colors.BOLD + "HELP MENU -> PLOT SPEED")
     fprint("You may also plot the speed of the device over time.")
     fprint("This plot shows the speed of the device at each time step.")
     fprint("You may adjust the denoising factor to reduce noise in the plot.")
@@ -1037,7 +1066,7 @@ def goodbye() -> None:
 
 # MAIN FUNCTION
 
-def main():
+def main() -> None:
     # Generate configuration file if it does not exist.
     Config.get()
 
