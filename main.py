@@ -1120,6 +1120,11 @@ def main() -> None:
 
     #pause() # Uncomment to pause after parsing data for debugging.
 
+    # Check if data is empty.
+    if len(data) == 0:
+        fprint(Colors.RED + "No data found in the log file. Please ensure that the file is valid.")
+        goodbye()
+
     # Launch main menu.
     main_menu()
 
