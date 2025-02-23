@@ -778,7 +778,6 @@ def render_earth(settings: dict) -> None:
     array = [google_earth_path]
     for key, value in settings.items():
         if value:
-            print(key)
             array.append(os.path.join(os.getcwd(), f"kml/{key}.kml"))
 
     # Open Google Earth Pro with the generated KML files.
