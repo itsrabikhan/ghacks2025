@@ -1070,7 +1070,11 @@ def goodbye() -> None:
 
 def main() -> None:
     # Generate configuration file if it does not exist.
-    Config.get()
+    try:
+        Config.get()
+    except Exception as e:
+        fprint(Colors.RED + f"Error loading configuration: {e}")
+        goodbye()
 
     # Open a file dialog to select the log file.
     fprint("Opening file dialog to select the log file...")
