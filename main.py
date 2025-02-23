@@ -13,6 +13,8 @@ import pandas as pd
 import simplekml
 import json
 import matplotlib.pyplot as plt
+import tkinter as tk
+from tkinter import filedialog
 
 
 # GLOBAL VARIABLES
@@ -1070,14 +1072,33 @@ def main() -> None:
     # Generate configuration file if it does not exist.
     Config.get()
 
-    # Check if data file exists.
-    if not os.path.exists("data.txt"):
-        fprint(Colors.RED + "Data file not found. Please ensure that the data file is in the same directory as the program.")
-        goodbye()
+    # Open a file dialog to select the log file.
+    fprint("Opening file dialog to select the log file...")
+    root = tk.Tk()
+    root.withdraw()
+    filename = filedialog.askopenfilename(
+        initialdir=os.getcwd(),
+        title="Select the log",
+        filetypes=(
+            ("Text files", "*.txt"),
+            ("All files", "*.*")
+        )
+    )
 
-    # Parse data from file and store in global variable.
-    with open("data.txt", "r") as file:
-        raw = file.readlines()
+    # Load the file and parse the data.
+    fprint(f"Loading file '{filename}'...")
+    try:
+        raw = open(filename, "r").readlines()
+    except FileNotFoundError:
+        # This technically should not happen, but it is better to be safe.
+        fprint(Colors.RED + "File not found. Please try again.")
+        goodbye()
+    except ImportError:
+        fprint(Colors.RED + "An error occurred while loading the log file. Please ensure that the file is valid.")
+        goodbye()
+    except Exception as e:
+        fprint(Colors.RED + f"An error occurred while loading the log file: {e}")
+        goodbye()
 
     # Parse data into objects.
     for line in raw:
